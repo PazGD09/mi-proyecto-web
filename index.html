@@ -829,7 +829,7 @@ const firebaseConfig = {
 // │  ⚠️  PASO 2 — URL DE TU SITIO (para el magic link)     │
 // │  Ej: "https://cecicm-fotografia.vercel.app"             │
 // └─────────────────────────────────────────────────────────┘
-const SITE_URL = "https://mi-proyecto-web-plum.vercel.app/";
+const SITE_URL = "http://mi-proyecto-web-plum.vercel.app/";
 
 const ALLOWED = "@pcpuma.acatlan.unam.mx";
 
@@ -902,18 +902,29 @@ onAuthStateChanged(auth, async (u) => {
     user = u;
     syncVoterUI();
 
-    // Handle magic link return
+    // Handle magic link return — only process if not already signed in
     if (isSignInWithEmailLink(auth, window.location.href)) {
+        // Always clear the URL immediately to prevent re-processing on reload
+        history.replaceState({}, document.title, location.pathname);
+
+        // If the user is already authenticated (link used before), just go to gallery
+        if (u) {
+            showView('galeria');
+            toast('✅ Sesión activa. ¡Ya puedes votar!', 'success');
+            return;
+        }
+
         let email = localStorage.getItem('emailForSignIn');
         if (!email) email = prompt('Confirma tu correo institucional:');
         try {
             await signInWithEmailLink(auth, email, window.location.href);
             localStorage.removeItem('emailForSignIn');
-            history.replaceState({}, document.title, location.pathname);
             showView('galeria');
             toast('✅ Sesión iniciada. ¡Ya puedes votar!', 'success');
         } catch (e) {
-            toast('Error al autenticar: ' + e.message, 'error');
+            localStorage.removeItem('emailForSignIn');
+            toast('El enlace ya fue usado o expiró. Solicita uno nuevo.', 'error');
+            showView('votar');
         }
     }
 });
@@ -1051,8 +1062,12 @@ async function renderGallery() {
 
         let voted = new Set();
         if (user) {
-            const vs = await getDocs(query(collection(db,'votes'), where('uid','==',user.uid)));
-            vs.docs.forEach(d => voted.add(d.data().photoId));
+            // Individual doc reads (not a collection query) — works with per-doc security rules
+            const voteChecks = await Promise.all(
+                photos.map(p => getDoc(doc(db, 'votes', user.uid + '_' + p.id)))
+            );
+            voteChecks.forEach(d => { if (d.exists()) voted.add(d.data().photoId); });
+        }toId));
         }
 
         grid.innerHTML = photos.map(p => photoCard(p, voted, s.votingOpen)).join('');
