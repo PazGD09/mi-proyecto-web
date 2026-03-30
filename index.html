@@ -829,7 +829,7 @@ const firebaseConfig = {
 // │  ⚠️  PASO 2 — URL DE TU SITIO (para el magic link)     │
 // │  Ej: "https://cecicm-fotografia.vercel.app"             │
 // └─────────────────────────────────────────────────────────┘
-const SITE_URL = "http://mi-proyecto-web-plum.vercel.app/";
+const SITE_URL = "https://mi-proyecto-web-plum.vercel.app/";
 
 const ALLOWED = "@pcpuma.acatlan.unam.mx";
 
@@ -1059,17 +1059,14 @@ async function renderGallery() {
                 <div class="ico">🖼️</div><p>No hay fotografías publicadas aún.</p></div>`;
             return;
         }
-        
-let voted = new Set();
-if (user) {
-    // Individual doc reads (not a collection query) — works with per-doc security rules
-    const voteChecks = await Promise.all(
-        photos.map(p => getDoc(doc(db, 'votes', user.uid + '_' + p.id)))
-    );
-    voteChecks.forEach(d => { if (d.exists()) voted.add(d.data().photoId); });
-}
 
-grid.innerHTML = photos.map(p => photoCard(p, voted, s.votingOpen)).join('');
+        let voted = new Set();
+        if (user) {
+            // Individual doc reads (not a collection query) — works with per-doc security rules
+            const voteChecks = await Promise.all(
+                photos.map(p => getDoc(doc(db, 'votes', user.uid + '_' + p.id)))
+            );
+            voteChecks.forEach(d => { if (d.exists()) voted.add(d.data().photoId); });
         
         }
 
