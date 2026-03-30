@@ -1059,15 +1059,18 @@ async function renderGallery() {
                 <div class="ico">🖼️</div><p>No hay fotografías publicadas aún.</p></div>`;
             return;
         }
+        
+let voted = new Set();
+if (user) {
+    // Individual doc reads (not a collection query) — works with per-doc security rules
+    const voteChecks = await Promise.all(
+        photos.map(p => getDoc(doc(db, 'votes', user.uid + '_' + p.id)))
+    );
+    voteChecks.forEach(d => { if (d.exists()) voted.add(d.data().photoId); });
+}
 
-        let voted = new Set();
-        if (user) {
-            // Individual doc reads (not a collection query) — works with per-doc security rules
-            const voteChecks = await Promise.all(
-                photos.map(p => getDoc(doc(db, 'votes', user.uid + '_' + p.id)))
-            );
-            voteChecks.forEach(d => { if (d.exists()) voted.add(d.data().photoId); });
-        }toId));
+grid.innerHTML = photos.map(p => photoCard(p, voted, s.votingOpen)).join('');
+        
         }
 
         grid.innerHTML = photos.map(p => photoCard(p, voted, s.votingOpen)).join('');
