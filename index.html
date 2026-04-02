@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Crimson+Pro:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <style>
         :root {
             --bg:           #07090F;
@@ -360,6 +361,33 @@
             border-top-color: white; border-radius: 50%;
             animation: rotate 0.65s linear infinite;
         }
+
+        /* ── REGISTRO ────────────────────────────────── */
+        .reg-wrap { max-width: 640px; margin: 0 auto; padding: 56px 24px 80px; }
+        .reg-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 30px; margin-top: 22px; }
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 3px 11px; border-radius: 100px; font-size: 11px; font-weight: 600;
+            letter-spacing: 0.06em; text-transform: uppercase;
+        }
+        .pill-pending  { background: rgba(234,179,8,0.14); color: #facc15; }
+        .pill-confirmed{ background: rgba(22,163,74,0.14);  color: #4ade80; }
+        .team-row {
+            display: flex; align-items: flex-start; gap: 12px;
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 8px; padding: 12px 14px; margin-bottom: 8px;
+        }
+        .team-row-info { flex: 1; min-width: 0; }
+        .team-row-name { font-weight: 500; font-size: 15px; margin-bottom: 4px; }
+        .team-row-meta { font-size: 12px; color: var(--muted); line-height: 1.6; }
+        .confirm-btn {
+            padding: 6px 13px; border-radius: 6px; font-size: 12px; font-weight: 600;
+            border: none; cursor: pointer; transition: all 0.18s; letter-spacing: 0.04em;
+            text-transform: uppercase; white-space: nowrap; flex-shrink: 0;
+        }
+        .confirm-btn.pending   { background: rgba(234,179,8,0.15); color: #facc15; }
+        .confirm-btn.confirmed { background: rgba(22,163,74,0.15);  color: #4ade80; }
+        .confirm-btn:hover { filter: brightness(1.2); }
         @keyframes rotate { to { transform: rotate(360deg); } }
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(18px); }
@@ -393,7 +421,8 @@
         </div>
         <div class="nav-links">
             <button class="nav-btn active" id="nb-inicio"  onclick="showView('inicio')">Inicio</button>
-            <button class="nav-btn"        id="nb-galeria" onclick="showView('galeria')">Galería</button>
+            <button class="nav-btn"        id="nb-galeria"     onclick="showView('galeria')">Galería</button>
+            <button class="nav-btn"        id="nb-inscripcion" onclick="showView('inscripcion')">Inscripción</button>
             <button class="nav-btn cta"    id="nb-votar"   onclick="showView('votar')">Votar</button>
         </div>
     </div>
@@ -563,6 +592,157 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════
+     VIEW: INSCRIPCIÓN
+══════════════════════════════════════════════════ -->
+<div class="view" id="view-inscripcion">
+    <div class="reg-wrap">
+        <div class="sec-label" style="margin-bottom:6px;">Concurso de Fotografía 2026</div>
+        <h2 style="font-family:'Bebas Neue';font-size:48px;letter-spacing:0.02em;line-height:1;">Registro de Equipos</h2>
+
+        <!-- Aviso de cierre por fecha -->
+        <div id="reg-closed" style="display:none;">
+            <div class="reg-card" style="text-align:center;">
+                <div style="font-size:44px;margin-bottom:12px;">🔒</div>
+                <h3 style="font-family:'Bebas Neue';font-size:26px;margin-bottom:8px;">Inscripciones Cerradas</h3>
+                <p style="font-size:15px;color:var(--muted);line-height:1.65;">El periodo de inscripción finalizó el 19 de abril de 2026.<br>Gracias a todos los equipos participantes.</p>
+            </div>
+        </div>
+
+        <!-- Cupo completo (cierre manual por admin) -->
+        <div id="reg-full" style="display:none;">
+            <div class="reg-card" style="text-align:center;">
+                <div style="font-size:44px;margin-bottom:12px;">🏁</div>
+                <h3 style="font-family:'Bebas Neue';font-size:26px;margin-bottom:8px;">Registro Cerrado</h3>
+                <p style="font-size:15px;color:var(--muted);line-height:1.65;">El registro de equipos ha sido cerrado por la administración del CECICM.</p>
+            </div>
+        </div>
+
+        <!-- Formulario de registro -->
+        <div id="reg-form-wrap">
+            <div class="reg-card">
+                <p class="editorial" style="font-size:16px;line-height:1.7;color:var(--muted);margin-bottom:22px;font-style:italic;">
+                    El titular del equipo debe completar este formulario. Para formalizar la participación se requiere el pago de <strong style="color:var(--text);">$300 MXN en efectivo</strong> antes del 19 de abril de 2026.
+                </p>
+
+                <div class="field">
+                    <label class="field-label">Nombre del Equipo</label>
+                    <input type="text" id="r-teamname" class="inp" placeholder="ej. Equipo Acatlán" oninput="checkRegReady()">
+                </div>
+
+                <div style="border-top:1px solid var(--border);margin:18px 0 16px;"></div>
+                <div style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;font-weight:500;">Titular del Equipo</div>
+
+                <div class="field">
+                    <label class="field-label">Nombre completo del Titular</label>
+                    <input type="text" id="r-leader" class="inp" placeholder="Nombre(s) y Apellidos" oninput="checkRegReady()">
+                </div>
+                <div class="field">
+                    <label class="field-label">Correo Institucional del Titular</label>
+                    <input type="email" id="r-email" class="inp" placeholder="ej. 319195064@pcpuma.acatlan.unam.mx" oninput="checkRegReady()">
+                    <div id="r-email-err" style="font-size:12px;color:#f87171;margin-top:4px;display:none;">Solo se aceptan correos @pcpuma.acatlan.unam.mx</div>
+                </div>
+                <div class="field">
+                    <label class="field-label">Número de Celular del Titular</label>
+                    <input type="tel" id="r-phone" class="inp" placeholder="10 dígitos" maxlength="10" oninput="checkRegReady()">
+                </div>
+
+                <div style="border-top:1px solid var(--border);margin:18px 0 16px;"></div>
+                <div style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;font-weight:500;">Integrantes</div>
+
+                <div class="field">
+                    <label class="field-label">Integrante 2 — Nombre completo</label>
+                    <input type="text" id="r-m2" class="inp" placeholder="Nombre(s) y Apellidos" oninput="checkRegReady()">
+                </div>
+                <div class="field">
+                    <label class="field-label">Integrante 3 — Nombre completo <span style="color:var(--muted);font-size:10px;">(opcional)</span></label>
+                    <input type="text" id="r-m3" class="inp" placeholder="Nombre(s) y Apellidos">
+                </div>
+
+                <div style="border-top:1px solid var(--border);margin:18px 0 16px;"></div>
+                <div style="background:rgba(176,24,24,0.08);border:1px solid rgba(176,24,24,0.25);border-radius:8px;padding:13px 15px;margin-bottom:18px;font-size:14px;line-height:1.65;color:var(--muted);">
+                    <strong style="color:var(--text);">⚠️ Recuerda:</strong> El registro no garantiza tu participación. Debes presentarte con la administración del CECICM para realizar el pago de <strong style="color:var(--text);">$300 MXN en efectivo</strong> antes del 19 de abril de 2026.
+                </div>
+
+                <div id="r-err" style="font-size:14px;color:#f87171;margin-bottom:12px;display:none;"></div>
+                <button class="btn btn-red btn-full" id="r-submit-btn" onclick="doRegister()" disabled>
+                    Registrar Equipo
+                </button>
+            </div>
+        </div>
+
+        <!-- Confirmación exitosa -->
+        <div id="reg-success" style="display:none;">
+            <div class="reg-card" style="text-align:center;">
+                <div style="font-size:44px;margin-bottom:12px;">✅</div>
+                <h3 style="font-family:'Bebas Neue';font-size:26px;margin-bottom:8px;letter-spacing:0.03em;">¡Registro Recibido!</h3>
+                <p style="font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:6px;">
+                    El equipo <strong id="rs-teamname" style="color:var(--text)"></strong> ha sido registrado.
+                </p>
+                <p style="font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:18px;">
+                    Se envió un correo de confirmación a <strong id="rs-email" style="color:var(--accent)"></strong>.<br>
+                    Revisa también tu carpeta de spam.
+                </p>
+                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:14px;color:var(--muted);line-height:1.7;text-align:left;">
+                    <strong style="color:var(--text);">Siguiente paso:</strong> Preséntate con la administración del CECICM para realizar el pago de <strong style="color:var(--text);">$300 MXN en efectivo</strong> antes del <strong style="color:var(--text);">19 de abril de 2026</strong>.
+                </div>
+                <button class="btn btn-ghost" onclick="showRegEdit()" style="margin-top:16px;font-size:14px;">Editar mi registro</button>
+            </div>
+        </div>
+
+        <!-- Editar registro existente -->
+        <div id="reg-edit-wrap" style="display:none;">
+            <div class="reg-card">
+                <div style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;font-weight:500;">Editar Registro</div>
+                <p style="font-size:14px;color:var(--muted);margin-bottom:18px;line-height:1.65;">Ingresa el correo institucional con el que registraste tu equipo para cargar y editar tus datos.</p>
+                <div class="field">
+                    <label class="field-label">Correo Institucional del Titular</label>
+                    <input type="email" id="edit-email" class="inp" placeholder="tu@pcpuma.acatlan.unam.mx">
+                </div>
+                <div id="edit-err" style="font-size:12px;color:#f87171;margin-bottom:10px;display:none;"></div>
+                <button class="btn btn-red btn-full" onclick="loadTeamForEdit()">Buscar mi registro</button>
+            </div>
+            <div id="edit-form" style="display:none;">
+                <div class="reg-card" style="margin-top:12px;">
+                    <div style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;font-weight:500;">Modificar Datos</div>
+                    <div class="field">
+                        <label class="field-label">Nombre del Equipo</label>
+                        <input type="text" id="edit-teamname" class="inp">
+                    </div>
+                    <div class="field">
+                        <label class="field-label">Nombre completo del Titular</label>
+                        <input type="text" id="edit-leader" class="inp">
+                    </div>
+                    <div class="field">
+                        <label class="field-label">Número de Celular</label>
+                        <input type="tel" id="edit-phone" class="inp" maxlength="10">
+                    </div>
+                    <div class="field">
+                        <label class="field-label">Integrante 2</label>
+                        <input type="text" id="edit-m2" class="inp">
+                    </div>
+                    <div class="field">
+                        <label class="field-label">Integrante 3 <span style="color:var(--muted);font-size:10px;">(opcional)</span></label>
+                        <input type="text" id="edit-m3" class="inp">
+                    </div>
+                    <div id="edit-save-err" style="font-size:12px;color:#f87171;margin-bottom:10px;display:none;"></div>
+                    <button class="btn btn-red btn-full" id="edit-save-btn" onclick="saveTeamEdit()">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enlace a editar desde inicio -->
+        <div style="text-align:center;margin-top:24px;">
+            <button onclick="showRegEditDirect()"
+                style="background:none;border:none;font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline;opacity:0.6;"
+                onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+                ¿Ya te registraste? Edita tu registro aquí
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
      VIEW: GALERÍA
 ══════════════════════════════════════════════════ -->
 <div class="view" id="view-galeria">
@@ -675,6 +855,7 @@
 
         <div class="admin-tabs">
             <button class="admin-tab active" onclick="showPanel('fotos',this)">📷 Fotografías</button>
+            <button class="admin-tab" onclick="showPanel('equipos',this)">👥 Equipos</button>
             <button class="admin-tab" onclick="showPanel('votos',this)">🗳️ Votos</button>
             <button class="admin-tab" onclick="showPanel('config',this)">⚙️ Configuración</button>
         </div>
@@ -724,6 +905,25 @@
             </div>
         </div>
 
+        <!-- PANEL: EQUIPOS -->
+        <div class="admin-panel" id="panel-equipos">
+            <div class="a-card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+                    <div class="a-card-title" style="margin:0;">Equipos Registrados</div>
+                    <div style="font-size:14px;color:var(--muted);">
+                        Total: <strong id="teams-count" style="color:var(--text);">0</strong>
+                        &nbsp;|&nbsp; Pagados: <strong id="teams-paid" style="color:#4ade80;">0</strong>
+                    </div>
+                </div>
+                <div id="admin-teams-list">
+                    <div class="empty"><div class="ico">👥</div><p>No hay equipos registrados aún.</p></div>
+                </div>
+                <button class="btn btn-ghost" onclick="exportTeams()" style="margin-top:14px;font-size:14px;">
+                    ⬇ Exportar equipos CSV
+                </button>
+            </div>
+        </div>
+
         <!-- PANEL: VOTOS -->
         <div class="admin-panel" id="panel-votos">
             <div class="a-card">
@@ -742,6 +942,19 @@
 
         <!-- PANEL: CONFIG -->
         <div class="admin-panel" id="panel-config">
+            <div class="a-card">
+                <div class="a-card-title">Control de Inscripciones</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:15px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+                    <div>
+                        <div style="font-weight:500;margin-bottom:3px;">Cerrar registro de equipos</div>
+                        <div style="font-size:14px;color:var(--muted);">Actívalo cuando ya no quieras recibir más registros</div>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="tog-registration" onchange="setRegistration(this.checked)">
+                        <span class="toggle-sl"></span>
+                    </label>
+                </div>
+            </div>
             <div class="a-card">
                 <div class="a-card-title">Control de Votación</div>
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:15px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
@@ -859,7 +1072,9 @@ Object.assign(window, {
     doAdminLogin, doAdminSignOut,
     checkReady, previewUrl, doUpload,
     deletePhoto, voteForPhoto,
-    setVoting, setGallery, confirmResetVotes, doExport, closeModal
+    checkRegReady, doRegister, showRegEdit, showRegEditDirect, loadTeamForEdit, saveTeamEdit,
+    toggleTeamStatus, exportTeams,
+    setVoting, setGallery, setRegistration, confirmResetVotes, doExport, closeModal
 });
 
 // ════════════════════════════════════════════════
@@ -872,6 +1087,7 @@ function showView(name) {
     document.getElementById('nb-' + name)?.classList.add('active');
     window.scrollTo(0, 0);
     if (name === 'galeria')     renderGallery();
+    if (name === 'inscripcion') initRegView();
     if (name === 'admin')       loadAdminData();
     if (name === 'votos')       loadVoteTable();
 }
@@ -885,6 +1101,7 @@ function showPanel(name, btn) {
     document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('panel-' + name)?.classList.add('active');
     btn.classList.add('active');
+    if (name === 'equipos') loadAdminTeams();
     if (name === 'votos') loadVoteTable();
     if (name === 'config') loadSettings();
 }
@@ -1089,6 +1306,311 @@ async function voteForPhoto(photoId, btn) {
 }
 
 // ════════════════════════════════════════════════
+// EMAILJS INIT
+// ════════════════════════════════════════════════
+const EMAILJS_PUBLIC_KEY  = "_YPFyrU1xTKdRTyC6";   // ← reemplaza con tu Public Key de EmailJS
+const EMAILJS_SERVICE_ID  = "service_os2uxas";   // ← reemplaza con tu Service ID de EmailJS
+const EMAILJS_TEMPLATE_ID = "template_dshwhfc";  // ← reemplaza con tu Template ID de EmailJS
+if (typeof emailjs !== 'undefined') emailjs.init(EMAILJS_PUBLIC_KEY);
+
+const DEADLINE = new Date('2026-04-19T23:59:59');
+
+// ════════════════════════════════════════════════
+// REGISTRO DE EQUIPOS — PÚBLICO
+// ════════════════════════════════════════════════
+function checkRegReady() {
+    const teamname = document.getElementById('r-teamname')?.value.trim();
+    const leader   = document.getElementById('r-leader')?.value.trim();
+    const email    = document.getElementById('r-email')?.value.trim();
+    const phone    = document.getElementById('r-phone')?.value.trim();
+    const m2       = document.getElementById('r-m2')?.value.trim();
+    const btn      = document.getElementById('r-submit-btn');
+    const errEl    = document.getElementById('r-email-err');
+    const emailOk  = email.endsWith('@pcpuma.acatlan.unam.mx') && email.length > 20;
+    if (errEl) errEl.style.display = (!emailOk && email.includes('@')) ? 'block' : 'none';
+    if (btn) btn.disabled = !(teamname && leader && emailOk && phone.length === 10 && m2);
+}
+
+async function initRegView() {
+    // Reset all states
+    ['reg-closed','reg-full','reg-success','reg-edit-wrap'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    const formWrap = document.getElementById('reg-form-wrap');
+    if (formWrap) formWrap.style.display = 'block';
+
+    // Check deadline
+    if (new Date() > DEADLINE) {
+        if (formWrap) formWrap.style.display = 'none';
+        const cl = document.getElementById('reg-closed');
+        if (cl) cl.style.display = 'block';
+        return;
+    }
+    // Check manual close by admin
+    try {
+        const s = await getDoc(doc(db, 'settings', 'contest'));
+        if (s.exists() && s.data().registrationClosed) {
+            if (formWrap) formWrap.style.display = 'none';
+            const rf = document.getElementById('reg-full');
+            if (rf) rf.style.display = 'block';
+        }
+    } catch {}
+}
+
+async function doRegister() {
+    const teamname = document.getElementById('r-teamname').value.trim();
+    const leader   = document.getElementById('r-leader').value.trim();
+    const email    = document.getElementById('r-email').value.trim();
+    const phone    = document.getElementById('r-phone').value.trim();
+    const m2       = document.getElementById('r-m2').value.trim();
+    const m3       = document.getElementById('r-m3').value.trim();
+    const errEl    = document.getElementById('r-err');
+    const btn      = document.getElementById('r-submit-btn');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span> Registrando…';
+    errEl.style.display = 'none';
+
+    try {
+        // Verify deadline again server-side logic
+        if (new Date() > DEADLINE) {
+            errEl.textContent = 'El periodo de inscripción ha finalizado.';
+            errEl.style.display = 'block';
+            btn.disabled = false; btn.textContent = 'Registrar Equipo'; return;
+        }
+
+        // Check if admin has closed registration
+        const settings = await getDoc(doc(db, 'settings', 'contest'));
+        if (settings.exists() && settings.data().registrationClosed) {
+            errEl.textContent = 'El registro de equipos ha sido cerrado por la administración.';
+            errEl.style.display = 'block';
+            btn.disabled = false; btn.textContent = 'Registrar Equipo'; return;
+        }
+
+        // Check if this email is already registered
+        const existing = await getDocs(query(collection(db,'teams'), where('leaderEmail','==',email)));
+        if (!existing.empty) {
+            errEl.textContent = 'Este correo ya tiene un equipo registrado. Usa "Editar mi registro" más abajo.';
+            errEl.style.display = 'block';
+            btn.disabled = false; btn.textContent = 'Registrar Equipo'; return;
+        }
+
+        const teamId  = 'team_' + Date.now();
+        const members = [leader, m2, m3].filter(Boolean);
+        const membersText = members.map((m,i) =>
+            (i === 0 ? 'Titular' : 'Integrante ' + (i + 1)) + ': ' + m
+        ).join('\n');
+
+        await setDoc(doc(db,'teams',teamId), {
+            teamName: teamname, leaderName: leader, leaderEmail: email,
+            phone, members, status: 'pending', registeredAt: serverTimestamp()
+        });
+
+        // Send confirmation email (non-blocking)
+        try {
+            if (typeof emailjs !== 'undefined') {
+                await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+                    leader_name: leader,
+                    team_name:   teamname,
+                    members:     membersText,
+                    to_email:    email
+                });
+            }
+        } catch (mailErr) {
+            console.warn('Email not sent:', mailErr);
+        }
+
+        // Show success screen
+        document.getElementById('reg-form-wrap').style.display = 'none';
+        document.getElementById('reg-success').style.display = 'block';
+        document.getElementById('rs-teamname').textContent = teamname;
+        document.getElementById('rs-email').textContent = email;
+
+    } catch (e) {
+        errEl.textContent = 'Error al registrar: ' + e.message;
+        errEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Registrar Equipo';
+    }
+}
+
+function showRegEdit() {
+    document.getElementById('reg-success').style.display = 'none';
+    document.getElementById('reg-edit-wrap').style.display = 'block';
+}
+
+function showRegEditDirect() {
+    const fw = document.getElementById('reg-form-wrap');
+    const ew = document.getElementById('reg-edit-wrap');
+    if (fw) fw.style.display = 'none';
+    if (ew) ew.style.display = 'block';
+    document.getElementById('edit-form').style.display = 'none';
+    document.getElementById('edit-email').value = '';
+    document.getElementById('edit-err').style.display = 'none';
+}
+
+let editingTeamId = null;
+
+async function loadTeamForEdit() {
+    const email = document.getElementById('edit-email').value.trim();
+    const errEl = document.getElementById('edit-err');
+    errEl.style.display = 'none';
+    if (!email.endsWith('@pcpuma.acatlan.unam.mx')) {
+        errEl.textContent = 'Ingresa un correo @pcpuma.acatlan.unam.mx';
+        errEl.style.display = 'block'; return;
+    }
+    if (new Date() > DEADLINE) {
+        errEl.textContent = 'El periodo de edición ha finalizado (19 de abril de 2026).';
+        errEl.style.display = 'block'; return;
+    }
+    try {
+        const snap = await getDocs(query(collection(db,'teams'), where('leaderEmail','==',email)));
+        if (snap.empty) {
+            errEl.textContent = 'No se encontró ningún registro con ese correo.';
+            errEl.style.display = 'block'; return;
+        }
+        const teamDoc = snap.docs[0];
+        const d = teamDoc.data();
+        editingTeamId = teamDoc.id;
+        document.getElementById('edit-teamname').value = d.teamName   || '';
+        document.getElementById('edit-leader').value   = d.leaderName || '';
+        document.getElementById('edit-phone').value    = d.phone       || '';
+        document.getElementById('edit-m2').value       = d.members?.[1] || '';
+        document.getElementById('edit-m3').value       = d.members?.[2] || '';
+        document.getElementById('edit-form').style.display = 'block';
+    } catch (e) {
+        errEl.textContent = 'Error: ' + e.message;
+        errEl.style.display = 'block';
+    }
+}
+
+async function saveTeamEdit() {
+    if (!editingTeamId) return;
+    const btn   = document.getElementById('edit-save-btn');
+    const errEl = document.getElementById('edit-save-err');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span> Guardando…';
+    errEl.style.display = 'none';
+    try {
+        const leader  = document.getElementById('edit-leader').value.trim();
+        const m2      = document.getElementById('edit-m2').value.trim();
+        const m3      = document.getElementById('edit-m3').value.trim();
+        const members = [leader, m2, m3].filter(Boolean);
+        await setDoc(doc(db,'teams',editingTeamId), {
+            teamName:   document.getElementById('edit-teamname').value.trim(),
+            leaderName: leader,
+            phone:      document.getElementById('edit-phone').value.trim(),
+            members,    updatedAt: serverTimestamp()
+        }, { merge: true });
+        toast('✅ Registro actualizado correctamente.', 'success');
+        document.getElementById('edit-form').style.display = 'none';
+        document.getElementById('edit-email').value = '';
+        editingTeamId = null;
+        // Return to form view
+        document.getElementById('reg-edit-wrap').style.display = 'none';
+        document.getElementById('reg-form-wrap').style.display = 'block';
+    } catch (e) {
+        errEl.textContent = 'Error: ' + e.message;
+        errEl.style.display = 'block';
+    } finally {
+        btn.disabled = false; btn.textContent = 'Guardar Cambios';
+    }
+}
+
+// ════════════════════════════════════════════════
+// ADMIN: PANEL DE EQUIPOS
+// ════════════════════════════════════════════════
+async function loadAdminTeams() {
+    const listEl = document.getElementById('admin-teams-list');
+    const cntEl  = document.getElementById('teams-count');
+    const paidEl = document.getElementById('teams-paid');
+    if (!listEl) return;
+    listEl.innerHTML = '<div style="text-align:center;padding:20px;"><span class="spin"></span></div>';
+    try {
+        const snap  = await getDocs(query(collection(db,'teams'), orderBy('registeredAt')));
+        const teams = snap.docs.map(d => ({id:d.id,...d.data()}));
+        const paid  = teams.filter(t => t.status === 'confirmed').length;
+        if (cntEl)  cntEl.textContent  = teams.length;
+        if (paidEl) paidEl.textContent = paid;
+        if (!teams.length) {
+            listEl.innerHTML = '<div class="empty"><div class="ico">👥</div><p>No hay equipos registrados aún.</p></div>';
+            return;
+        }
+        listEl.innerHTML = teams.map(t => {
+            const isPaid = t.status === 'confirmed';
+            const date   = t.registeredAt?.toDate?.()?.toLocaleDateString('es-MX') || '—';
+            const membersList = (t.members || []).map((m,i) =>
+                '<span style="display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 7px;font-size:11px;margin:2px 2px 0 0;">' +
+                (i===0?'Titular: ':'Int.'+(i)+': ') + m + '</span>'
+            ).join('');
+            
+return `<div class="team-row" id="tr-${t.id}">
+    <div class="team-row-info">
+        <div class="team-row-name">${t.teamName}</div>
+        <div class="team-row-meta">
+            📧 ${t.leaderEmail} &nbsp;·&nbsp; 📱 ${t.phone || '—'}<br>
+            <div style="margin-top:4px;">${membersList}</div>
+            <div style="margin-top:4px;font-size:11px;opacity:0.6;">Registrado: ${date}</div>
+        </div>
+    </div>
+    <button class="confirm-btn ${isPaid ? 'confirmed' : 'pending'}" 
+            onclick="toggleTeamStatus('${t.id}', '${isPaid ? 'pending' : 'confirmed'}', this)">
+        ${isPaid ? '✓ Pagado' : 'Pendiente'}
+    </button>
+</div>`;
+        }).join('');
+    } catch (e) {
+        listEl.innerHTML = '<p style="color:#f87171;font-size:14px;">' + e.message + '</p>';
+    }
+}
+
+async function toggleTeamStatus(teamId, newStatus, btn) {
+    btn.disabled = true;
+    try {
+        await setDoc(doc(db,'teams',teamId), { status: newStatus }, { merge: true });
+        const isPaid = newStatus === 'confirmed';
+        btn.className = 'confirm-btn ' + (isPaid ? 'confirmed' : 'pending');
+        btn.textContent = isPaid ? '✓ Pagado' : 'Pendiente';
+        btn.onclick = () => toggleTeamStatus(teamId, isPaid ? 'pending' : 'confirmed', btn);
+        // Update counter
+        await loadAdminTeams();
+        toast(isPaid ? '✅ Equipo marcado como pagado.' : 'Equipo regresado a pendiente.', 'success');
+    } catch (e) {
+        toast('Error: ' + e.message, 'error');
+        btn.disabled = false;
+    }
+}
+
+async function exportTeams() {
+    try {
+        const snap  = await getDocs(query(collection(db,'teams'), orderBy('registeredAt')));
+        const teams = snap.docs.map(d => ({id:d.id,...d.data()}));
+        const rows  = [['Equipo','Titular','Correo','Celular','Integrante 2','Integrante 3','Estado','Fecha Registro'],
+            ...teams.map(t => [
+                t.teamName, t.leaderName, t.leaderEmail, t.phone,
+                t.members?.[1]||'', t.members?.[2]||'',
+                t.status === 'confirmed' ? 'Pagado' : 'Pendiente',
+                t.registeredAt?.toDate?.()?.toLocaleDateString('es-MX') || ''
+            ])
+        ];
+        const csv  = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
+        const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href=url; a.download='equipos_cecicm_fotografia_2026.csv'; a.click();
+        URL.revokeObjectURL(url);
+    } catch (e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ════════════════════════════════════════════════
+// ADMIN: REGISTRATION TOGGLE
+// ════════════════════════════════════════════════
+async function setRegistration(v) {
+    await setDoc(doc(db,'settings','contest'),{registrationClosed: v},{merge:true});
+    toast(v ? '🔒 Registro cerrado.' : '✅ Registro abierto.', 'success');
+}
+
+// ════════════════════════════════════════════════
 // ADMIN: LOAD
 // ════════════════════════════════════════════════
 async function getSettings() {
@@ -1098,15 +1620,17 @@ async function getSettings() {
     } catch { return { galleryOpen: false, votingOpen: false }; }
 }
 
-async function loadAdminData() { await loadSettings(); await loadAdminPhotos(); }
+async function loadAdminData() { await loadSettings(); await loadAdminPhotos(); await loadAdminTeams(); }
 
 async function loadSettings() {
     const s  = await getSettings();
     const tv = document.getElementById('tog-voting');
     const tg = document.getElementById('tog-gallery');
+    const tr = document.getElementById('tog-registration');
     const vb = document.getElementById('voting-badge');
     if (tv) tv.checked = !!s.votingOpen;
     if (tg) tg.checked = !!s.galleryOpen;
+    if (tr) tr.checked = !!s.registrationClosed;
     if (vb) {
         vb.className = 'badge ' + (s.votingOpen ? 'open' : 'closed');
         vb.innerHTML = `<span class="dot"></span>${s.votingOpen ? 'Votación abierta' : 'Votación cerrada'}`;
