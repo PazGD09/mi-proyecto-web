@@ -1077,7 +1077,7 @@ async function voteForPhoto(photoId, btn) {
         }
         await setDoc(voteRef, { uid: user.uid, email: user.email, photoId, timestamp: serverTimestamp() });
         await setDoc(countRef, { count: increment(1) }, { merge: true });
-        });
+        
         btn.textContent = '✓ Ya votaste por esta foto';
         btn.className   = 'vote-btn voted';
         toast('¡Voto registrado!', 'success');
