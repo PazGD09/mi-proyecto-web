@@ -1071,7 +1071,7 @@ Object.assign(window, {
     voterGoogleSignIn, voterSignOut,
     doAdminLogin, doAdminSignOut,
     checkReady, previewUrl, doUpload,
-    deletePhoto, voteForPhoto,
+    deletePhoto, voteForPhoto, deleteTeam,
     checkRegReady, doRegister, showRegEdit, showRegEditDirect, loadTeamForEdit, saveTeamEdit,
     toggleTeamStatus, exportTeams,
     setVoting, setGallery, setRegistration, confirmResetVotes, doExport, closeModal
@@ -1545,19 +1545,22 @@ async function loadAdminTeams() {
             ).join('');
             
 return `<div class="team-row" id="tr-${t.id}">
-    <div class="team-row-info">
-        <div class="team-row-name">${t.teamName}</div>
-        <div class="team-row-meta">
-            📧 ${t.leaderEmail} &nbsp;·&nbsp; 📱 ${t.phone || '—'}<br>
-            <div style="margin-top:4px;">${membersList}</div>
-            <div style="margin-top:4px;font-size:11px;opacity:0.6;">Registrado: ${date}</div>
-        </div>
-    </div>
-    <button class="confirm-btn ${isPaid ? 'confirmed' : 'pending'}" 
-            onclick="toggleTeamStatus('${t.id}', '${isPaid ? 'pending' : 'confirmed'}', this)">
-        ${isPaid ? '✓ Pagado' : 'Pendiente'}
-    </button>
-</div>`;
+                <div class="team-row-info">
+                    <div class="team-row-name">${t.teamName}</div>
+                    <div class="team-row-meta">
+                        📧 ${t.leaderEmail} &nbsp;·&nbsp; 📱 ${t.phone || '—'}<br>
+                        <div style="margin-top:4px;">${membersList}</div>
+                        <div style="margin-top:4px;font-size:11px;opacity:0.6;">Registrado: ${date}</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="confirm-btn ${isPaid ? 'confirmed' : 'pending'}" 
+                            onclick="toggleTeamStatus('${t.id}', '${isPaid ? 'pending' : 'confirmed'}', this)">
+                        ${isPaid ? '✓ Pagado' : 'Pendiente'}
+                    </button>
+                    <button class="del-btn" onclick="deleteTeam('${t.id}')" title="Eliminar Equipo">🗑</button>
+                </div>
+            </div>`;
         }).join('');
     } catch (e) {
         listEl.innerHTML = '<p style="color:#f87171;font-size:14px;">' + e.message + '</p>';
@@ -1601,6 +1604,27 @@ async function exportTeams() {
         URL.revokeObjectURL(url);
     } catch (e) { toast('Error: ' + e.message, 'error'); }
 }
+
+// ════════════════════════════════════════════════
+// ADMIN: ELIMINAR EQUIPO
+// ════════════════════════════════════════════════
+function deleteTeam(teamId) {
+    showModal('¿Eliminar equipo?',
+        'Se eliminará este registro permanentemente. Esta acción es irreversible.',
+        async () => {
+            closeModal();
+            try {
+                // Ejecuta la petición DELETE a Firestore
+                await deleteDoc(doc(db, 'teams', teamId));
+                toast('Equipo eliminado correctamente.', 'success');
+                // Recarga la lista para reflejar el cambio
+                loadAdminTeams();
+            } catch (e) { 
+                toast('Error al eliminar: ' + e.message, 'error'); 
+            }
+        }
+    );
+}    
 
 // ════════════════════════════════════════════════
 // ADMIN: REGISTRATION TOGGLE
