@@ -589,30 +589,21 @@
         <div class="sec-label" style="margin-bottom:6px;">Participación Comunitaria</div>
         <h2 style="font-family:'Bebas Neue';font-size:48px;letter-spacing:0.02em;line-height:1;">Emite tu Voto</h2>
 
-        <!-- Form: enter email -->
+        <!-- Google Sign-In -->
         <div id="s-form">
-            <div class="auth-card">
-                <p class="editorial" style="font-size:16px;line-height:1.65;color:var(--muted);margin-bottom:22px;font-style:italic;">
-                    Usa tu correo institucional de la FES Acatlán para identificarte y votar por tus fotografías favoritas.
+            <div class="auth-card" style="text-align:center;">
+                <p class="editorial" style="font-size:17px;line-height:1.65;color:var(--muted);margin-bottom:26px;font-style:italic;">
+                    Usa tu cuenta institucional de Google <strong style="color:var(--text)">@pcpuma.acatlan.unam.mx</strong> para identificarte y votar.
                 </p>
-                <div class="field">
-                    <label class="field-label">Correo Institucional</label>
-                    <input type="email" id="voter-email" class="inp"
-                        placeholder="ej. 319195064@pcpuma.acatlan.unam.mx"
-                        oninput="checkEmailValid()">
-                    <div id="email-err" style="font-size:12px;color:#f87171;margin-top:5px;display:none;">
-                        Solo se aceptan correos @pcpuma.acatlan.unam.mx
-                    </div>
-                </div>
-                <button class="btn btn-red btn-full" id="send-btn" onclick="sendMagicLink()" disabled>
-                    Enviar enlace de acceso
+                <button id="google-btn" class="btn btn-full" onclick="voterGoogleSignIn()"
+                    style="background:white;color:#1f1f1f;font-size:15px;padding:12px 20px;gap:10px;border:none;">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                        style="width:20px;height:20px;" alt="Google">
+                    Continuar con Google
                 </button>
-                <p style="font-size:12px;color:var(--muted);margin-top:14px;line-height:1.6;text-align:center;">
-                    Recibirás un enlace en tu bandeja de entrada. Al hacer clic quedarás autenticado automáticamente.
+                <p style="font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6;">
+                    Solo se aceptan cuentas con dominio <em>@pcpuma.acatlan.unam.mx</em>
                 </p>
-                <div style="margin-top:10px;padding:10px 13px;background:rgba(176,24,24,0.08);border:1px solid rgba(176,24,24,0.25);border-radius:7px;font-size:12px;color:#f87171;line-height:1.55;text-align:left;">
-                    <strong>⚠️ Revisa también tu carpeta de Spam o Correo no deseado.</strong> El enlace suele llegar ahí. Si no lo ves en tu bandeja principal, busca un correo de <em>noreply@…firebase…</em> en Spam.
-                </div>
             </div>
         </div>
 
@@ -836,8 +827,8 @@ const ALLOWED = "@pcpuma.acatlan.unam.mx";
 // ── FIREBASE IMPORTS ──────────────────────────────────────
 import { initializeApp }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, sendSignInLinkToEmail, isSignInWithEmailLink,
-         signInWithEmailLink, signOut, onAuthStateChanged,
+import { getAuth, GoogleAuthProvider, signInWithPopup,
+         signOut, onAuthStateChanged,
          signInWithEmailAndPassword }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc,
@@ -852,6 +843,9 @@ const auth    = getAuth(app);
 const db      = getFirestore(app);
 // const storage = getStorage(app); // not needed
 
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ hd: 'pcpuma.acatlan.unam.mx' });    
+    
 // ── STATE ─────────────────────────────────────────────────
 let user        = null;   // current voter
 let adminUser   = null;   // current admin
@@ -861,7 +855,7 @@ let cachedPhotos= [];
 // ── EXPOSE TO WINDOW (required from module) ───────────────
 Object.assign(window, {
     showView, scrollToSection: scrollToId, showPanel,
-    checkEmailValid, sendMagicLink, resetAuth, voterSignOut,
+    voterGoogleSignIn, voterSignOut,
     doAdminLogin, doAdminSignOut,
     checkReady, previewUrl, doUpload,
     deletePhoto, voteForPhoto,
@@ -898,35 +892,9 @@ function showPanel(name, btn) {
 // ════════════════════════════════════════════════
 // AUTH STATE OBSERVER
 // ════════════════════════════════════════════════
-onAuthStateChanged(auth, async (u) => {
+onAuthStateChanged(auth, (u) => {
     user = u;
     syncVoterUI();
-
-    // Handle magic link return — only process if not already signed in
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-        // Always clear the URL immediately to prevent re-processing on reload
-        history.replaceState({}, document.title, location.pathname);
-
-        // If the user is already authenticated (link used before), just go to gallery
-        if (u) {
-            showView('galeria');
-            toast('✅ Sesión activa. ¡Ya puedes votar!', 'success');
-            return;
-        }
-
-        let email = localStorage.getItem('emailForSignIn');
-        if (!email) email = prompt('Confirma tu correo institucional:');
-        try {
-            await signInWithEmailLink(auth, email, window.location.href);
-            localStorage.removeItem('emailForSignIn');
-            showView('galeria');
-            toast('✅ Sesión iniciada. ¡Ya puedes votar!', 'success');
-        } catch (e) {
-            localStorage.removeItem('emailForSignIn');
-            toast('El enlace ya fue usado o expiró. Solicita uno nuevo.', 'error');
-            showView('votar');
-        }
-    }
 });
 
 function syncVoterUI() {
@@ -959,42 +927,31 @@ function syncVoterUI() {
 }
 
 // ════════════════════════════════════════════════
-// VOTER AUTH
+// VOTER AUTH - Google Sign-In
 // ════════════════════════════════════════════════
-function checkEmailValid() {
-    const email = document.getElementById('voter-email').value;
-    const btn   = document.getElementById('send-btn');
-    const err   = document.getElementById('email-err');
-    const ok    = email.endsWith(ALLOWED) && email.length > ALLOWED.length + 3;
-    btn.disabled = !ok;
-    err.style.display = (!ok && email.includes('@') && email.length > 5) ? 'block' : 'none';
-}
-
-async function sendMagicLink() {
-    const email = document.getElementById('voter-email').value;
-    const btn   = document.getElementById('send-btn');
+async function voterGoogleSignIn() {
+    const btn = document.getElementById('google-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spin"></span>';
+    btn.innerHTML = '<span class="spin"></span> Conectando…';
     try {
-        await sendSignInLinkToEmail(auth, email, {
-            url: SITE_URL, handleCodeInApp: true
-        });
-        localStorage.setItem('emailForSignIn', email);
-        document.getElementById('s-form').style.display = 'none';
-        document.getElementById('s-sent').style.display = 'block';
-        document.getElementById('sent-email').textContent = email;
+        const result = await signInWithPopup(auth, googleProvider);
+        const email  = result.user.email;
+        if (!email.endsWith('@pcpuma.acatlan.unam.mx')) {
+            await signOut(auth);
+            toast('Solo se permiten correos @pcpuma.acatlan.unam.mx', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Continuar con Google';
+            return;
+        }
+        showView('galeria');
+        toast('✅ Sesión iniciada. ¡Ya puedes votar!', 'success');
     } catch (e) {
-        toast('Error: ' + e.message, 'error');
+        if (e.code !== 'auth/popup-closed-by-user') {
+            toast('Error al iniciar sesión: ' + e.message, 'error');
+        }
         btn.disabled = false;
-        btn.textContent = 'Enviar enlace de acceso';
+        btn.textContent = 'Continuar con Google';
     }
-}
-
-function resetAuth() {
-    document.getElementById('s-form').style.display = 'block';
-    document.getElementById('s-sent').style.display = 'none';
-    document.getElementById('voter-email').value = '';
-    document.getElementById('send-btn').disabled = true;
 }
 
 async function voterSignOut() {
