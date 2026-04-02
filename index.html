@@ -833,7 +833,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup,
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc,
          collection, getDocs, query, orderBy, where,
-         serverTimestamp, runTransaction, writeBatch }
+         serverTimestamp, increment, writeBatch }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 // Firebase Storage not used — images hosted on Cloudinary
 
@@ -1075,10 +1075,8 @@ async function voteForPhoto(photoId, btn) {
             btn.className   = 'vote-btn voted';
             return;
         }
-        await runTransaction(db, async tx => {
-            const cs = await tx.get(countRef);
-            tx.set(voteRef, { uid: user.uid, email: user.email, photoId, timestamp: serverTimestamp() });
-            tx.set(countRef, { count: (cs.exists() ? cs.data().count : 0) + 1 }, { merge: true });
+        await setDoc(voteRef, { uid: user.uid, email: user.email, photoId, timestamp: serverTimestamp() });
+        await setDoc(countRef, { count: increment(1) }, { merge: true });
         });
         btn.textContent = '✓ Ya votaste por esta foto';
         btn.className   = 'vote-btn voted';
