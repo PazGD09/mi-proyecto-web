@@ -1933,8 +1933,12 @@ function confirmResetVotes() {
                 const b  = writeBatch(db);
                 const vs = await getDocs(collection(db,'votes'));
                 const cs = await getDocs(collection(db,'voteCounts'));
+                
                 vs.docs.forEach(d => b.delete(d.ref));
-                cs.docs.forEach(d => b.set(d.ref,{count:0}));
+                // Corrección: Utilizamos delete en lugar de set para respetar 
+                // los privilegios de administrador establecidos en Firestore.
+                cs.docs.forEach(d => b.delete(d.ref)); 
+                
                 await b.commit();
                 toast('Todos los votos eliminados.','success');
             } catch (e) { toast('Error: '+e.message,'error'); }
