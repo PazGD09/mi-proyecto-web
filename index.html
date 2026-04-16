@@ -9,19 +9,29 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <style>
-        :root {
-            --bg:           #07090F;
-            --surface:      #0D1220;
-            --surface2:     #131A2C;
-            --primary:      #1B3A8C;
-            --primary-lt:   #2D52B8;
-            --accent:       #B01818;
-            --accent-lt:    #D42020;
-            --text:         #EDE8D5;
-            --muted:        #7A8BA8;
-            --border:       #1C2840;
-        }
 
+:root {
+    /* Fondo y Superficies (Mantenemos la profundidad del sitio de foto) */
+    --bg:           #07090F;
+    --surface:      #0D1220;
+    --surface2:     #131A2C;
+    --border:       #1C2840;
+
+    /* Azul de Marca (El "Punto Medio") */
+    /* Ni tan oscuro como el de foto, ni tan saturado como el de Ruta Crítica */
+    --primary:      #1347D1; 
+    --primary-lt:   #3469F5;
+
+    /* Color de Acento (Sinergia de contraste) */
+    /* Un rojo-naranja quemado que funciona para ambos conceptos */
+    --accent:       #D93D1A; 
+    --accent-lt:    #F55A38;
+
+    /* Tipografía */
+    --text:         #EDE8D5;
+    --muted:        #7A8BA8;
+}
+        
         html { scroll-behavior: smooth; }
         * { box-sizing: border-box; }
 
